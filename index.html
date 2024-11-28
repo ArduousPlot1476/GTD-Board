@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTD Kanban Board</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            background: white;
+            color: #2f3437;
+            height: 100vh;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .add-task {
+            padding: 8px 16px;
+            background: #2eaadc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .add-task:hover {
+            background: #2591ba;
+        }
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            height: calc(100vh - 100px);
+        }
+        .column {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .column-header {
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+        }
+        .task-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            min-height: 100px;
+        }
+        .task {
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: move;
+        }
+        .task:hover {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .task-title {
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+        .priority {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        .priority-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .priority-medium {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        .priority-low {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal-buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .save-task {
+            background: #2eaadc;
+            color: white;
+        }
+        .cancel-task {
+            background: #f5f5f5;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <h1>GTD Dashboard</h1>
+        <button class="add-task" onclick="openModal()">Add Task</button>
+    </div>
+    
+    <div class="kanban-board">
+        <div class="column" id="inbox">
+            <div class="column-header">📥 Inbox</div>
+            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+        </div>
+        <div class="column" id="next-actions">
+            <div class="column-header">▶️ Next Actions</div>
+            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+        </div>
+        <div class="column" id="waiting">
+            <div class="column-header">⏳ Waiting</div>
+            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+        </div>
+        <div class="column" id="someday">
+            <div class="column-header">🔮 Someday/Maybe</div>
+            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="form-group">
+                <label for="taskTitle">Task Title</label>
+                <input type="text" id="taskTitle" required>
+            </div>
+            <div class="form-group">
+                <label for="taskDescription">Description</label>
+                <textarea id="taskDescription"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="taskPriority">Priority</label>
+                <select id="taskPriority">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="taskDueDate">Due Date</label>
+                <input type="date" id="taskDueDate">
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-task" onclick="closeModal()">Cancel</button>
+                <button class="save-task" onclick="saveTask()">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize tasks from localStorage or start with empty arrays
+        let tasks = JSON.parse(localStorage.getItem('gtdTasks')) || {
+            'inbox': [],
+            'next-actions': [],
+            'waiting': [],
+            'someday': []
+        };
+
+        // Render initial tasks
+        function renderTasks() {
+            Object.keys(tasks).forEach(column => {
+                const taskList = document.querySelector(`#${column} .task-list`);
+                taskList.innerHTML = '';
+                tasks[column].forEach(task => {
+                    const taskElement = createTaskElement(task);
+                    taskList.appendChild(taskElement);
+                });
+            });
+        }
+
+        function createTaskElement(task) {
+            const div = document.createElement('div');
+            div.className = 'task';
+            div.draggable = true;
+            div.id = task.id;
+            div.ondragstart = drag;
+            
+            const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date';
+            
+            div.innerHTML = `
+                <div class="task-title">${task.title}</div>
+                <div class="task-meta">
+                    <span class="priority priority-${task.priority}">${task.priority}</span>
+                    <span>${dueDate}</span>
+                </div>
+            `;
+            return div;
+        }
+
+        function openModal() {
+            document.getElementById('taskModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('taskModal').style.display = 'none';
+            clearForm();
+        }
+
+        function clearForm() {
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskDescription').value = '';
+            document.getElementById('taskPriority').value = 'low';
+            document.getElementById('taskDueDate').value = '';
+        }
+
+        function saveTask() {
+            const task = {
+                id: 'task-' + Date.now(),
+                title: document.getElementById('taskTitle').value,
+                description: document.getElementById('taskDescription').value,
+                priority: document.getElementById('taskPriority').value,
+                dueDate: document.getElementById('taskDueDate').value,
+                createdAt: new Date().toISOString()
+            };
+
+            tasks.inbox.unshift(task);
+            localStorage.setItem('gtdTasks', JSON.stringify(tasks));
+            renderTasks();
+            closeModal();
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const taskId = ev.dataTransfer.getData("text");
+            const taskElement = document.getElementById(taskId);
+            const targetColumn = ev.target.closest('.column').id;
+            
+            // Find and remove task from its original column
+            let task;
+            Object.keys(tasks).forEach(column => {
+                const taskIndex = tasks[column].findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    task = tasks[column].splice(taskIndex, 1)[0];
+                }
+            });
+
+            // Add task to new column
+            if (task) {
+                tasks[targetColumn].unshift(task);
+                localStorage.setItem('gtdTasks', JSON.stringify(tasks));
+                renderTasks();
+            }
+        }
+
+        // Initial render
+        renderTasks();
+    </script>
+</body>
+</html>
