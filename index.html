@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>GTD Board</title>
     <style>
         * {
@@ -31,11 +32,14 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 15px;
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
             margin-bottom: 20px;
         }
 
         .stat-card {
-            background: #f5f5f5;
+            background: white;
             padding: 15px;
             border-radius: 8px;
             text-align: center;
@@ -93,7 +97,7 @@
             padding: 12px;
             margin-bottom: 10px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            cursor: move;
+            cursor: pointer;
         }
 
         .task:hover {
@@ -123,6 +127,39 @@
         .priority-medium { background: #fff3e0; color: #ef6c00; }
         .priority-low { background: #e8f5e9; color: #2e7d32; }
 
+        .task-history {
+            margin-top: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .task-history h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .history-table th {
+            background: #f8f9fa;
+            font-weight: 500;
+        }
+
         .add-button {
             position: fixed;
             bottom: 30px;
@@ -136,6 +173,9 @@
             font-size: 24px;
             cursor: pointer;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .add-button:hover {
@@ -147,9 +187,10 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            right: 0;
+            bottom: 0;
             background: rgba(0,0,0,0.5);
+            z-index: 1000;
         }
 
         .modal-content {
@@ -208,7 +249,7 @@
             margin-top: 20px;
         }
 
-        .modal-buttons button {
+        .button {
             padding: 8px 16px;
             border: none;
             border-radius: 4px;
@@ -231,48 +272,9 @@
             color: white;
         }
 
-        .history-section {
-            margin-top: 30px;
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 20px;
+        [draggable] {
+            cursor: move;
         }
-
-        .history-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-
-        .history-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .history-table th,
-        .history-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-
-        .history-table th {
-            background: #f8f9fa;
-            font-weight: 500;
-        }
-
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-        }
-
-        .status-new { background: #e3f2fd; color: #1976d2; }
-        .status-in-progress { background: #fff3e0; color: #ef6c00; }
-        .status-completed { background: #e8f5e9; color: #2e7d32; }
     </style>
 </head>
 <body>
@@ -330,15 +332,15 @@
             </div>
         </div>
 
-        <div class="history-section">
-            <h2 class="history-title">Task History</h2>
+        <div class="task-history">
+            <h2>Task History</h2>
             <table class="history-table">
                 <thead>
                     <tr>
                         <th>Date</th>
                         <th>Task</th>
                         <th>Action</th>
-                        <th>Status</th>
+                        <th>Column</th>
                         <th>Time in Stage</th>
                     </tr>
                 </thead>
@@ -353,7 +355,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title" id="modalTitle">New Task</div>
-                <button class="delete-button" id="deleteButton" style="display: none" onclick="deleteTask()">Delete</button>
+                <button class="button delete-button" id="deleteButton" style="display: none" onclick="deleteTask()">Delete</button>
             </div>
             <div class="form-group">
                 <label for="taskTitle">Title</label>
@@ -376,8 +378,8 @@
                 <input type="date" id="taskDueDate">
             </div>
             <div class="modal-buttons">
-                <button class="cancel-button" onclick="closeModal()">Cancel</button>
-                <button class="save-button" onclick="saveTask()">Save Task</button>
+                <button class="button cancel-button" onclick="closeModal()">Cancel</button>
+                <button class="button save-button" onclick="saveTask()">Save Task</button>
             </div>
         </div>
     </div>
@@ -395,12 +397,6 @@
         let taskHistory = JSON.parse(localStorage.getItem('gtdTaskHistory')) || [];
         let currentTask = null;
 
-        // Helper function to format dates
-        function formatDate(date) {
-            return new Date(date).toLocaleString();
-        }
-
-        // Update statistics
         function updateStats() {
             const total = Object.values(tasks).flat().length;
             const completed = tasks.completed.length;
@@ -417,17 +413,16 @@
             });
         }
 
-        // Task display
         function createTaskElement(task) {
             const div = document.createElement('div');
             div.className = 'task';
             div.draggable = true;
             div.id = task.id;
             div.ondragstart = drag;
-            div.onclick = () => editTask(task);
-            
+            div.onclick = () => openModal(task);
+
             const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date';
-            
+
             div.innerHTML = `
                 <div class="task-title">${task.title}</div>
                 <div class="task-meta">
@@ -438,7 +433,6 @@
             return div;
         }
 
-        // Render all tasks
         function renderTasks() {
             Object.keys(tasks).forEach(column => {
                 const taskList = document.querySelector(`#${column} .task-list`);
@@ -451,7 +445,6 @@
             renderHistory();
         }
 
-        // Render history
         function renderHistory() {
             const tbody = document.getElementById('historyTableBody');
             tbody.innerHTML = '';
@@ -459,16 +452,33 @@
             taskHistory.slice(0, 20).forEach(entry => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${formatDate(entry.timestamp)}</td>
+                    <td>${new Date(entry.timestamp).toLocaleString()}</td>
                     <td>${entry.taskTitle}</td>
                     <td>${entry.action}</td>
-                    <td><span class="status-badge status-${entry.status}">${entry.status}</span></td>
+                    <td>${entry.column}</td>
                     <td>${entry.timeInStage || 'N/A'}</td>
                 `;
                 tbody.appendChild(row);
             });
         }
 
-        // Modal functions
         function openModal(task = null) {
-            currentTask = task
+            currentTask = task;
+            const modal = document.getElementById('taskModal');
+            const title = document.getElementById('modalTitle');
+            const deleteBtn = document.getElementById('deleteButton');
+            const saveBtn = document.querySelector('.save-button');
+
+            if (task) {
+                title.textContent = 'Edit Task';
+                document.getElementById('taskTitle').value = task.title;
+                document.getElementById('taskDescription').value = task.description || '';
+                document.getElementById('taskPriority').value = task.priority;
+                document.getElementById('taskDueDate').value = task.dueDate || '';
+                deleteBtn.style.display = 'block';
+                saveBtn.textContent = 'Update Task';
+            } else {
+                title.textContent = 'New Task';
+                document.getElementById('taskTitle').value = '';
+                document.getElementById('taskDescription').value = '';
+                document.getElementById('taskPriority').value = 'low
