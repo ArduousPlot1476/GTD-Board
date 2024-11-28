@@ -1,208 +1,245 @@
 <!DOCTYPE html>
 <html>
-<!-- Previous head and style sections remain the same until modal styles -->
 <head>
     <!-- Previous head content remains the same -->
     <style>
         /* Previous styles remain the same */
         
-        /* Enhanced modal styles */
-        .modal-content {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
+        /* Add new styles for task history */
+        .task-history {
+            margin-top: 40px;
             padding: 20px;
+            background: white;
             border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
         }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .task-history h2 {
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .history-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
             margin-bottom: 20px;
         }
 
-        .modal-title {
-            font-size: 18px;
+        .history-stat-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .history-stat-box h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .history-stat-box p {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2f3437;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .history-table th {
+            background: #f5f5f5;
             font-weight: 600;
         }
 
-        .delete-button {
-            background: #ff4444;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
+        .scroll-container {
+            max-height: calc(100vh - 600px);
+            overflow-y: auto;
+            margin-top: 20px;
         }
 
-        .delete-button:hover {
-            background: #cc0000;
+        /* Status badges */
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
         }
 
-        .view-only-field {
-            background: #f5f5f5;
-            padding: 8px;
-            border-radius: 4px;
-            margin-bottom: 15px;
+        .status-completed {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .status-in-progress {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-waiting {
+            background: #fff3e0;
+            color: #ef6c00;
         }
     </style>
 </head>
 <body>
-    <!-- Previous stats and progress bar sections remain the same -->
+    <!-- Previous kanban board content remains the same -->
 
-    <div class="kanban-board">
-        <div class="column" id="inbox">
-            <div class="column-header">
-                📥 Inbox
-                <span class="column-progress">25%</span>
+    <div class="task-history">
+        <h2>Task History</h2>
+        <div class="history-stats">
+            <div class="history-stat-box">
+                <h3>Total Tasks Created</h3>
+                <p id="totalTasksCreated">0</p>
             </div>
-            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            <div class="history-stat-box">
+                <h3>Tasks Completed</h3>
+                <p id="totalTasksCompleted">0</p>
+            </div>
+            <div class="history-stat-box">
+                <h3>Completion Rate</h3>
+                <p id="taskCompletionRate">0%</p>
+            </div>
         </div>
-        <div class="column" id="next-actions">
-            <div class="column-header">
-                ▶️ Next Actions
-                <span class="column-progress">50%</span>
-            </div>
-            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-        </div>
-        <div class="column" id="waiting">
-            <div class="column-header">
-                ⏳ Waiting
-                <span class="column-progress">75%</span>
-            </div>
-            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-        </div>
-        <div class="column" id="completed">
-            <div class="column-header">
-                ✅ Complete
-                <span class="column-progress">100%</span>
-            </div>
-            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-        </div>
-        <div class="column" id="someday">
-            <div class="column-header">
-                🔮 Someday/Maybe
-                <span class="column-progress">0%</span>
-            </div>
-            <div class="task-list" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-        </div>
-    </div>
-
-    <button class="add-task" onclick="openModal()">+</button>
-
-    <!-- Enhanced modal for both new tasks and viewing existing tasks -->
-    <div class="modal" id="taskModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title" id="modalTitle">New Task</div>
-                <button class="delete-button" id="deleteButton" style="display: none" onclick="deleteTask()">Delete Task</button>
-            </div>
-            <div class="form-group">
-                <label for="taskTitle">Task Title</label>
-                <input type="text" id="taskTitle" required>
-            </div>
-            <div class="form-group">
-                <label for="taskDescription">Description</label>
-                <textarea id="taskDescription"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="taskPriority">Priority</label>
-                <select id="taskPriority">
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="taskDueDate">Due Date</label>
-                <input type="date" id="taskDueDate">
-            </div>
-            <div class="form-group" id="createdAtGroup" style="display: none">
-                <label>Created At</label>
-                <div class="view-only-field" id="createdAt"></div>
-            </div>
-            <div class="form-group" id="currentProgressGroup" style="display: none">
-                <label>Current Progress</label>
-                <div class="view-only-field" id="currentProgress"></div>
-            </div>
-            <div class="modal-buttons">
-                <button class="cancel-task" onclick="closeModal()">Cancel</button>
-                <button class="save-task" id="saveButton" onclick="saveTask()">Save Task</button>
-            </div>
+        <div class="scroll-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Task</th>
+                        <th>Status</th>
+                        <th>Time in Stage</th>
+                        <th>Total Time</th>
+                    </tr>
+                </thead>
+                <tbody id="taskHistoryBody">
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        // Previous variables and columnProgress object remain the same
+        // Add to your existing variables
+        let taskHistory = JSON.parse(localStorage.getItem('gtdTaskHistory')) || [];
 
-        let currentEditingTask = null;
+        function updateTaskHistory(task, fromColumn, toColumn) {
+            const now = new Date();
+            const historyEntry = {
+                taskId: task.id,
+                taskTitle: task.title,
+                fromStatus: fromColumn,
+                toStatus: toColumn,
+                timestamp: now.toISOString(),
+                timeInStage: task.lastStatusChange ? 
+                    Math.floor((now - new Date(task.lastStatusChange)) / 1000) : 0
+            };
+            
+            taskHistory.unshift(historyEntry);
+            localStorage.setItem('gtdTaskHistory', JSON.stringify(taskHistory));
+            
+            // Update task's status change timestamp
+            task.lastStatusChange = now.toISOString();
+            
+            renderTaskHistory();
+        }
 
-        function viewTask(task) {
-            currentEditingTask = task;
-            document.getElementById('modalTitle').textContent = 'View Task';
-            document.getElementById('taskTitle').value = task.title;
-            document.getElementById('taskDescription').value = task.description || '';
-            document.getElementById('taskPriority').value = task.priority;
-            document.getElementById('taskDueDate').value = task.dueDate || '';
+        function renderTaskHistory() {
+            const tbody = document.getElementById('taskHistoryBody');
+            tbody.innerHTML = '';
             
-            // Show additional fields for existing tasks
-            document.getElementById('createdAtGroup').style.display = 'block';
-            document.getElementById('currentProgressGroup').style.display = 'block';
-            document.getElementById('deleteButton').style.display = 'block';
-            document.getElementById('createdAt').textContent = new Date(task.createdAt).toLocaleString();
+            let totalTasks = new Set(taskHistory.map(h => h.taskId)).size;
+            let completedTasks = new Set(taskHistory
+                .filter(h => h.toStatus === 'completed')
+                .map(h => h.taskId)).size;
             
-            // Find current column
-            let currentColumn = '';
-            Object.entries(tasks).forEach(([column, taskList]) => {
-                if (taskList.find(t => t.id === task.id)) {
-                    currentColumn = column;
+            document.getElementById('totalTasksCreated').textContent = totalTasks;
+            document.getElementById('totalTasksCompleted').textContent = completedTasks;
+            document.getElementById('taskCompletionRate').textContent = 
+                totalTasks ? Math.round((completedTasks / totalTasks) * 100) + '%' : '0%';
+
+            taskHistory.slice(0, 50).forEach(entry => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(entry.timestamp).toLocaleString()}</td>
+                    <td>${entry.taskTitle}</td>
+                    <td>
+                        <span class="status-badge status-${entry.toStatus === 'completed' ? 'completed' : 
+                            entry.toStatus === 'waiting' ? 'waiting' : 'in-progress'}">
+                            ${entry.toStatus}
+                        </span>
+                    </td>
+                    <td>${formatDuration(entry.timeInStage)}</td>
+                    <td>${calculateTotalTime(entry.taskId, entry.timestamp)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatDuration(seconds) {
+            if (!seconds) return 'N/A';
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return hours > 0 ? 
+                `${hours}h ${minutes}m` : 
+                `${minutes}m`;
+        }
+
+        function calculateTotalTime(taskId, upTo) {
+            const taskEntries = taskHistory
+                .filter(h => h.taskId === taskId && new Date(h.timestamp) <= new Date(upTo));
+            if (taskEntries.length <= 1) return 'N/A';
+            
+            const firstEntry = taskEntries[taskEntries.length - 1];
+            const totalSeconds = Math.floor(
+                (new Date(upTo) - new Date(firstEntry.timestamp)) / 1000
+            );
+            return formatDuration(totalSeconds);
+        }
+
+        // Modify your existing drop function
+        function drop(ev) {
+            ev.preventDefault();
+            const taskId = ev.dataTransfer.getData("text");
+            const taskElement = document.getElementById(taskId);
+            const targetColumn = ev.target.closest('.column').id;
+            
+            let task;
+            let fromColumn;
+            Object.keys(tasks).forEach(column => {
+                const taskIndex = tasks[column].findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    task = tasks[column].splice(taskIndex, 1)[0];
+                    fromColumn = column;
                 }
             });
-            
-            document.getElementById('currentProgress').textContent = `${columnProgress[currentColumn]}%`;
-            
-            document.getElementById('saveButton').textContent = 'Update Task';
-            openModal();
+
+            if (task) {
+                tasks[targetColumn].unshift(task);
+                updateTaskHistory(task, fromColumn, targetColumn);
+                localStorage.setItem('gtdTasks', JSON.stringify(tasks));
+                renderTasks();
+            }
         }
 
-        function deleteTask() {
-            if (!currentEditingTask) return;
-            
-            Object.keys(tasks).forEach(column => {
-                tasks[column] = tasks[column].filter(task => task.id !== currentEditingTask.id);
-            });
-            
-            localStorage.setItem('gtdTasks', JSON.stringify(tasks));
-            renderTasks();
-            closeModal();
-        }
-
-        function openModal() {
-            document.getElementById('taskModal').style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('taskModal').style.display = 'none';
-            clearForm();
-            currentEditingTask = null;
-            document.getElementById('modalTitle').textContent = 'New Task';
-            document.getElementById('createdAtGroup').style.display = 'none';
-            document.getElementById('currentProgressGroup').style.display = 'none';
-            document.getElementById('deleteButton').style.display = 'none';
-            document.getElementById('saveButton').textContent = 'Save Task';
-        }
-
+        // Modify your saveTask function to include history
         function saveTask() {
             const taskData = {
                 title: document.getElementById('taskTitle').value,
                 description: document.getElementById('taskDescription').value,
                 priority: document.getElementById('taskPriority').value,
-                dueDate: document.getElementById('taskDueDate').value
+                dueDate: document.getElementById('taskDueDate').value,
+                lastStatusChange: new Date().toISOString()
             };
 
             if (currentEditingTask) {
@@ -224,6 +261,7 @@
                     ...taskData
                 };
                 tasks.inbox.unshift(newTask);
+                updateTaskHistory(newTask, null, 'inbox');
             }
 
             localStorage.setItem('gtdTasks', JSON.stringify(tasks));
@@ -231,10 +269,9 @@
             closeModal();
         }
 
-        // Previous helper functions (createTaskElement, allowDrop, drag, drop) remain the same
-
-        // Initial render
+        // Initial render should include task history
         renderTasks();
+        renderTaskHistory();
     </script>
 </body>
 </html>
